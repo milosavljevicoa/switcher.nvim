@@ -19,8 +19,8 @@ local function convert_file_suffix_to(file_path, suffix)
   return string.sub(
     file_path,
     1,
-    string.len(file_path) - string.len(suffix)
-  ) .. suffix
+    string.len(file_path) - (string.len(suffix) - 1)
+  ) .. "." .. suffix
 end
 
 local function file_exists(name)
@@ -33,26 +33,34 @@ local function file_exists(name)
   end
 end
 
-local function getFileExtension(file)
-return file:match("^.+(%..+)$")
+local function getFileWithExtension(file)
+  local ext = file:match("^.+(%..+)$")
+  local fileWithoutExt = string.sub(
+    file,
+    1,
+    string.len(file) - string.len(ext)
+  )
+  return fileWithoutExt, ext
 end
 
 local M = {}
 
+-- not working when there is an extension like .spec.ts
 function M.switch_to(extension)
   local normalized_current_path = normalize_path(vim.api.nvim_buf_get_name(0));
-  if getFileExtension(normalized_current_path) == extension then
+  local file, ext = getFileWithExtension(normalized_current_path)
+  if ext == extension then
     print "File already opened"
     return
   end
 
-  local normalized_path_to_open = convert_file_suffix_to(normalized_current_path, extension)
-  if not file_exists(normalized_path_to_open) then
-    print "File does not exist"
+  file = file .. "." .. extension
+  if not file_exists(file) then
+    print ("File does not exist: " .. file)
     return
   end
 
-  vim.fn.execute('edit ' .. normalized_path_to_open)
+  vim.fn.execute('edit ' .. file)
 end
 
 
