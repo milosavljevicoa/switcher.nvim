@@ -8,21 +8,6 @@ local normalize_path = function(item)
   return Path:new(item):make_relative(vim.loop.cwd())
 end
 
--- not yet in use
-local function is_path_matching_suffix(file_path, suffix)
-  suffix = string.reverse(suffix)
-  file_path = string.sub(string.reverse(file_path), 1, string.len(suffix))
-  return suffix == file_path
-end
-
-local function convert_file_suffix_to(file_path, suffix)
-  return string.sub(
-    file_path,
-    1,
-    string.len(file_path) - (string.len(suffix) - 1)
-  ) .. "." .. suffix
-end
-
 local function file_exists(name)
    local f = io.open(name,"r")
    if f ~= nil then
@@ -45,13 +30,17 @@ end
 
 local M = {}
 
--- not working when there is an extension like .spec.ts
-function M.switch_to(extension)
-  local normalized_current_path = normalize_path(vim.api.nvim_buf_get_name(0));
-  local file, ext = getFileWithExtension(normalized_current_path)
-  if ext == extension then
-    print "File already opened"
-    return
+function M.switch_to(extension, possible_suffix)
+  possible_suffix = possible_suffix or ""
+  local current_file = normalize_path(vim.api.nvim_buf_get_name(0));
+  local file, _ = getFileWithExtension(current_file)
+
+  if possible_suffix ~= "" then
+    local index_of_suffix = string.len(file) - (string.len(possible_suffix))
+    local suffix = string.sub(file, index_of_suffix + 1)
+    if suffix == possible_suffix then
+      file = file.sub(file, 1, index_of_suffix - 1)
+    end
   end
 
   file = file .. "." .. extension
@@ -60,8 +49,12 @@ function M.switch_to(extension)
     return
   end
 
+  if file == current_file then
+    print ("File already opened")
+    return
+  end
+
   vim.fn.execute('edit ' .. file)
 end
-
 
 return M
